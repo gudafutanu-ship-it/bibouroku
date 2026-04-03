@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>美貌録</title>
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --accent:#5b7cff;
+      --accent2:#e9efff;
+      --danger:#c0392b;
+      --ok:#1e8e3e;
+      --shadow:0 8px 24px rgba(0,0,0,0.08);
+      --radius:18px;
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      font-family:"Yu Gothic","Hiragino Kaku Gothic ProN","Meiryo",sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      line-height:1.6;
+    }
+
+    header{
+      position:sticky;
+      top:0;
+      z-index:10;
+      background:rgba(246,247,251,0.94);
+      backdrop-filter: blur(8px);
+      border-bottom:1px solid var(--line);
+    }
+
+    .wrap{
+      max-width:760px;
+      margin:0 auto;
+      padding:14px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:8px 0;
+    }
+
+    .brand-left h1{
+      margin:0;
+      font-size:1.8rem;
+      line-height:1.1;
+    }
+
+    .subtitle{
+      margin:4px 0 0;
+      color:var(--muted);
+      font-size:0.95rem;
+    }
+
+    .sync-pill{
+      background:#eef7ee;
+      color:#246b37;
+      border:1px solid #cde8d4;
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:0.9rem;
+      white-space:nowrap;
+    }
+
+    main{
+      padding:18px 0 100px;
+    }
+
+    .screen{
+      display:none;
+      animation:fade .18s ease;
+    }
+
+    .screen.active{
+      display:block;
+    }
+
+    @keyframes fade{
+      from{ opacity:0; transform:translateY(6px); }
+      to{ opacity:1; transform:translateY(0); }
+    }
+
+    .card{
+      background:var(--card);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:18px;
+      margin-bottom:16px;
+    }
+
+    .hero-date{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .date-big{
+      font-size:1.25rem;
+      font-weight:700;
+      margin:0;
+    }
+
+    .time-big{
+      font-size:2rem;
+      font-weight:700;
+      margin:4px 0 0;
+    }
+
+    .muted{
+      color:var(--muted);
+    }
+
+    .section-title{
+      margin:0 0 10px;
+      font-size:1.15rem;
+      font-weight:700;
+    }
+
+    .schedule-list{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .schedule-item{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:14px;
+      background:#fff;
+    }
+
+    .schedule-top{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .schedule-time{
+      font-size:1.15rem;
+      font-weight:700;
+    }
+
+    .schedule-tag{
+      display:inline-block;
+      padding:4px 10px;
+      border-radius:999px;
+      background:var(--accent2);
+      color:#3451c6;
+      font-size:.88rem;
+      border:1px solid #d6e0ff;
+    }
+
+    .schedule-title{
+      font-size:1.15rem;
+      font-weight:700;
+      margin-top:4px;
+    }
+
+    .schedule-date{
+      font-size:.95rem;
+      color:var(--muted);
+      margin-top:4px;
+    }
+
+    .row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .big-btn, .sub-btn, .tiny-btn{
+      border:none;
+      border-radius:16px;
+      cursor:pointer;
+      font-family:inherit;
+    }
+
+    .big-btn{
+      width:100%;
+      padding:18px 16px;
+      font-size:1.2rem;
+      font-weight:700;
+      background:var(--accent);
+      color:#fff;
+      box-shadow:0 8px 16px rgba(91,124,255,.22);
+      margin-bottom:12px;
+    }
+
+    .big-btn.secondary{
+      background:#fff;
+      color:var(--text);
+      border:1px solid var(--line);
+      box-shadow:none;
+    }
+
+    .big-btn.danger{
+      background:#fff1f0;
+      color:var(--danger);
+      border:1px solid #f0c4bf;
+      box-shadow:none;
+    }
+
+    .sub-btn{
+      padding:12px 16px;
+      font-size:1rem;
+      font-weight:700;
+      background:#fff;
+      color:var(--text);
+      border:1px solid var(--line);
+    }
+
+    .tiny-btn{
+      padding:8px 12px;
+      font-size:.92rem;
+      font-weight:700;
+      background:#fff;
+      color:var(--text);
+      border:1px solid var(--line);
+    }
+
+    .tiny-btn.delete{
+      color:var(--danger);
+      border-color:#efc2bb;
+      background:#fff8f7;
+    }
+
+    .mic-wrap{
+      text-align:center;
+      padding:10px 0 2px;
+    }
+
+    .mic-btn{
+      width:132px;
+      height:132px;
+      border-radius:50%;
+      border:none;
+      background:var(--accent);
+      color:#fff;
+      font-size:2rem;
+      cursor:pointer;
+      box-shadow:0 10px 24px rgba(91,124,255,.28);
+    }
+
+    .mic-btn.listening{
+      animation:pulse 1.2s infinite;
+    }
+
+    @keyframes pulse{
+      0%{ transform:scale(1); box-shadow:0 10px 24px rgba(91,124,255,.28); }
+      50%{ transform:scale(1.06); box-shadow:0 12px 28px rgba(91,124,255,.40); }
+      100%{ transform:scale(1); box-shadow:0 10px 24px rgba(91,124,255,.28); }
+    }
+
+    .status{
+      margin-top:14px;
+      font-size:1.08rem;
+      font-weight:700;
+    }
+
+    textarea, input, select{
+      width:100%;
+      padding:14px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      font-size:1rem;
+      font-family:inherit;
+      background:#fff;
+    }
+
+    .label{
+      display:block;
+      font-weight:700;
+      margin-bottom:8px;
+    }
+
+    .block{
+      margin-bottom:14px;
+    }
+
+    .bubble{
+      border-radius:18px;
+      padding:14px 16px;
+      margin-bottom:10px;
+      max-width:92%;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    .bubble.ai{
+      background:#eef3ff;
+      margin-right:auto;
+    }
+
+    .bubble.user{
+      background:#f3f4f6;
+      margin-left:auto;
+    }
+
+    .notice{
+      border-radius:14px;
+      padding:14px;
+      margin-top:12px;
+      font-weight:700;
+    }
+
+    .notice.ok{
+      background:#eefaf0;
+      color:#206c37;
+      border:1px solid #cfe9d5;
+    }
+
+    .notice.warn{
+      background:#fff8e8;
+      color:#8a6415;
+      border:1px solid #eedcae;
+    }
+
+    .notice.danger{
+      background:#fff2f1;
+      color:#a53428;
+      border:1px solid #efc7c2;
+    }
+
+    .tabs{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-bottom:12px;
+    }
+
+    .tab-btn{
+      border:none;
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:10px 14px;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .tab-btn.active{
+      background:var(--accent2);
+      border-color:#cdd9ff;
+      color:#3451c6;
+    }
+
+    .small{
+      font-size:.92rem;
+    }
+
+    .footer-space{
+      height:30px;
+    }
+
+    .top-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:12px;
+    }
+
+    @media (max-width:560px){
+      .brand-left h1{ font-size:1.55rem; }
+      .time-big{ font-size:1.75rem; }
+      .big-btn{ font-size:1.08rem; }
+      .mic-btn{ width:116px; height:116px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="brand">
+        <div class="brand-left">
+          <h1>美貌録</h1>
+          <p class="subtitle">話して残す、やさしい生活手帳</p>
+        </div>
+        <div class="sync-pill" id="syncStatus">試作版 / 端末保存</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <!-- HOME -->
+    <section id="homeScreen" class="screen active">
+      <div class="card">
+        <div class="hero-date">
+          <div>
+            <p class="date-big" id="todayDateText">2026年4月3日（金）</p>
+            <p class="time-big" id="clockText">午前 8:15</p>
+          </div>
+          <div class="muted small" id="todaySummary">今日は0件の予定があります</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">今日の予定</h2>
+        <div id="todayScheduleList" class="schedule-list"></div>
+      </div>
+
+      <button class="big-btn" onclick="goScreen('talkScreen')">話す</button>
+      <button class="big-btn secondary" onclick="speakTodaySchedules()">今日の予定を聞く</button>
+      <button class="big-btn secondary" onclick="openChatWithGreeting()">おしゃべりする</button>
+      <button class="big-btn secondary" onclick="goScreen('scheduleScreen'); renderScheduleList('today');">予定を見る</button>
+      <button class="big-btn secondary" onclick="goScreen('settingsScreen'); loadSettingsUI();">設定</button>
+    </section>
+
+    <!-- TALK -->
+    <section id="talkScreen" class="screen">
+      <div class="card">
+        <h2 class="section-title">話してください</h2>
+        <div class="mic-wrap">
+          <button id="micBtn" class="mic-btn" onclick="toggleRecognition()">🎤</button>
+          <div class="status" id="micStatus">待機中</div>
+          <div class="muted">マイクが使えない場合は下に入力してください</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="block">
+          <label class="label" for="manualInput">聞き取り結果 / 手入力</label>
+          <textarea id="manualInput" rows="3" placeholder="例：明日10時に病院 / 毎朝8時に薬 / 少し話したい"></textarea>
+        </div>
+
+        <div class="row">
+          <button class="sub-btn" onclick="processInput()">これで送る</button>
+          <button class="sub-btn" onclick="clearTalkInput()">消す</button>
+          <button class="sub-btn" onclick="goHome()">戻る</button>
+        </div>
+      </div>
+
+      <div id="talkResultCard" class="card" style="display:none;">
+        <h2 class="section-title">AIの確認</h2>
+        <div id="talkResultBody"></div>
+      </div>
+    </section>
+
+    <!-- SCHEDULE -->
+    <section id="scheduleScreen" class="screen">
+      <div class="card">
+        <h2 class="section-title">予定を見る</h2>
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="today" onclick="changeScheduleTab(this,'today')">今日</button>
+          <button class="tab-btn" data-tab="tomorrow" onclick="changeScheduleTab(this,'tomorrow')">明日</button>
+          <button class="tab-btn" data-tab="week" onclick="changeScheduleTab(this,'week')">今週</button>
+          <button class="tab-btn" data-tab="repeat" onclick="changeScheduleTab(this,'repeat')">くり返し</button>
+        </div>
+
+        <div id="scheduleListArea" class="schedule-list"></div>
+
+        <div class="top-actions">
+          <button class="sub-btn" onclick="speakListCurrentTab()">読み上げ</button>
+          <button class="sub-btn" onclick="goHome()">戻る</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHAT -->
+    <section id="chatScreen" class="screen">
+      <div class="card">
+        <h2 class="section-title">おしゃべり</h2>
+        <div id="chatLog"></div>
+
+        <div class="block">
+          <label class="label" for="chatInput">話したいこと</label>
+          <textarea id="chatInput" rows="3" placeholder="今日は少しさびしい / 今日は寒いね / 少し話したい"></textarea>
+        </div>
+
+        <div class="row">
+          <button class="sub-btn" onclick="sendChat()">送る</button>
+          <button class="sub-btn" onclick="speakLastAI()">もう一度聞く</button>
+          <button class="sub-btn" onclick="goHome()">終わる</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="settingsScreen" class="screen">
+      <div class="card">
+        <h2 class="section-title">設定</h2>
+
+        <div class="block">
+          <label class="label" for="userName">お名前</label>
+          <input id="userName" type="text" placeholder="例：高木さん" />
+        </div>
+
+        <div class="block">
+          <label class="label" for="callName">呼びかけ名</label>
+          <input id="callName" type="text" placeholder="例：たけしさん" />
+        </div>
+
+        <div class="block">
+          <label class="label" for="voiceRate">声の速さ</label>
+          <select id="voiceRate">
+            <option value="0.8">ゆっくり</option>
+            <option value="0.95">ふつう</option>
+            <option value="1.1">少し速め</option>
+          </select>
+        </div>
+
+        <div class="block">
+          <label class="label" for="morningNotify">朝の案内時刻</label>
+          <input id="morningNotify" type="time" />
+        </div>
+
+        <div class="row">
+          <button class="sub-btn" onclick="saveSettings()">保存</button>
+          <button class="sub-btn" onclick="testVoice()">テスト再生</button>
+          <button class="sub-btn" onclick="goHome()">戻る</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer-space"></div>
+  </main>
+
+  <script>
+    const STORAGE_KEY_SCHEDULES = "bibouroku_schedules_v1";
+    const STORAGE_KEY_SETTINGS = "bibouroku_settings_v1";
+    const STORAGE_KEY_CHAT = "bibouroku_chat_v1";
+
+    let recognition = null;
+    let isListening = false;
+    let pendingSchedule = null;
+    let currentScheduleTab = "today";
+    let lastAISpeech = "";
+
+    const categoryLabels = {
+      hospital: "通院",
+      medicine: "薬",
+      garbage: "ゴミ出し",
+      shopping: "買い物",
+      family_call: "家族連絡",
+      day_service: "デイサービス",
+      free: "予定"
+    };
+
+    function initApp(){
+      seedDemoDataIfEmpty();
+      updateClock();
+      setInterval(updateClock, 1000);
+      renderTodayHome();
+      initSpeechRecognition();
+      loadSettingsIfMissing();
+    }
+
+    function goScreen(id){
+      document.querySelectorAll(".screen").forEach(el => el.classList.remove("active"));
+      document.getElementById(id).classList.add("active");
+    }
+
+    function goHome(){
+      renderTodayHome();
+      goScreen("homeScreen");
+    }
+
+    function updateClock(){
+      const now = new Date();
+      const youbi = ["日","月","火","水","木","金","土"][now.getDay()];
+      const dateText = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日（${youbi}）`;
+      const h = now.getHours();
+      const ampm = h < 12 ? "午前" : "午後";
+      const hh = ((h + 11) % 12 + 1);
+      const mm = String(now.getMinutes()).padStart(2, "0");
+      document.getElementById("todayDateText").textContent = dateText;
+      document.getElementById("clockText").textContent = `${ampm} ${hh}:${mm}`;
+    }
+
+    function getSchedules(){
+      return JSON.parse(localStorage.getItem(STORAGE_KEY_SCHEDULES) || "[]");
+    }
+
+    function setSchedules(list){
+      localStorage.setItem(STORAGE_KEY_SCHEDULES, JSON.stringify(list));
+    }
+
+    function getSettings(){
+      return JSON.parse(localStorage.getItem(STORAGE_KEY_SETTINGS) || "{}");
+    }
+
+    function setSettings(obj){
+      localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(obj));
+    }
+
+    function getChatLogs(){
+      return JSON.parse(localStorage.getItem(STORAGE_KEY_CHAT) || "[]");
+    }
+
+    function setChatLogs(list){
+      localStorage.setItem(STORAGE_KEY_CHAT, JSON.stringify(list));
+    }
+
+    function loadSettingsIfMissing(){
+      const s = getSettings();
+      if (!s.userName) {
+        setSettings({
+          userName: "",
+          callName: "",
+          voiceRate: "0.8",
+          morningNotify: "08:00"
+        });
+      }
+    }
+
+    function loadSettingsUI(){
+      const s = getSettings();
+      document.getElementById("userName").value = s.userName || "";
+      document.getElementById("callName").value = s.callName || "";
+      document.getElementById("voiceRate").value = s.voiceRate || "0.8";
+      document.getElementById("morningNotify").value = s.morningNotify || "08:00";
+    }
+
+    function saveSettings(){
+      const s = {
+        userName: document.getElementById("userName").value.trim(),
+        callName: document.getElementById("callName").value.trim(),
+        voiceRate: document.getElementById("voiceRate").value,
+        morningNotify: document.getElementById("morningNotify").value || "08:00"
+      };
+      setSettings(s);
+      alert("設定を保存しました。");
+      renderTodayHome();
+    }
+
+    function testVoice(){
+      const s = getSettings();
+      const name = s.callName || s.userName || "こんにちは";
+      speak(`${name}、美貌録の音声テストです。今日もゆっくりいきましょう。`);
+    }
+
+    function renderTodayHome(){
+      const list = getSchedulesForTab("today");
+      const wrap = document.getElementById("todayScheduleList");
+      wrap.innerHTML = "";
+
+      document.getElementById("todaySummary").textContent = `今日は${list.length}件の予定があります`;
+
+      if(list.length === 0){
+        wrap.innerHTML = `<div class="notice warn">今日はまだ予定がありません。</div>`;
+        return;
+      }
+
+      list.forEach(item => wrap.appendChild(createScheduleCard(item, false)));
+    }
+
+    function createScheduleCard(item, withActions = true){
+      const div = document.createElement("div");
+      div.className = "schedule-item";
+      div.innerHTML = `
+        <div class="schedule-top">
+          <div class="schedule-time">${escapeHtml(item.time || "時刻未設定")}</div>
+          <div class="schedule-tag">${escapeHtml(categoryLabels[item.category] || "予定")}</div>
+        </div>
+        <div class="schedule-title">${escapeHtml(item.title)}</div>
+        <div class="schedule-date">${formatScheduleDate(item)}</div>
+      `;
+
+      if(withActions){
+        const row = document.createElement("div");
+        row.className = "row";
+        row.style.marginTop = "12px";
+        row.innerHTML = `
+          <button class="tiny-btn">読み上げ</button>
+          <button class="tiny-btn delete">削除</button>
+        `;
+        row.children[0].onclick = () => speak(formatSingleScheduleSpeech(item));
+        row.children[1].onclick = () => {
+          if(confirm("この予定を削除しますか？")){
+            deleteSchedule(item.id);
+          }
+        };
+        div.appendChild(row);
+      }
+
+      return div;
+    }
+
+    function deleteSchedule(id){
+      const next = getSchedules().filter(x => x.id !== id);
+      setSchedules(next);
+      renderTodayHome();
+      renderScheduleList(currentScheduleTab);
+    }
+
+    function formatScheduleDate(item){
+      if(item.repeatType && item.repeatType !== "none"){
+        if(item.repeatType === "daily") return `毎日 ${item.time || ""}`.trim();
+        if(item.repeatType === "weekly") return `毎週 ${item.repeatValue || ""} ${item.time || ""}`.trim();
+        if(item.repeatType === "monthly") return `毎月 ${item.repeatValue || ""} ${item.time || ""}`.trim();
+      }
+      return `${item.date || "日付未設定"} ${item.time || ""}`.trim();
+    }
+
+    function formatSingleScheduleSpeech(item){
+      const cat = categoryLabels[item.category] || "予定";
+      if(item.repeatType === "daily"){
+        return `${item.time}に${item.title}の予定があります。`;
+      }
+      if(item.repeatType === "weekly"){
+        return `毎週${item.repeatValue}、${item.time}に${item.title}の予定があります。`;
+      }
+      return `${item.date}、${item.time}に${item.title}の予定があります。`;
+    }
+
+    function getSchedulesForTab(tab){
+      const all = getSchedules();
+      const today = ymd(new Date());
+      const tomorrowDate = new Date();
+      tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+      const tomorrow = ymd(tomorrowDate);
+
+      return all.filter(item => {
+        if(tab === "repeat"){
+          return item.repeatType && item.repeatType !== "none";
+        }
+
+        if(item.repeatType === "daily"){
+          return tab === "today" || tab === "tomorrow" || tab === "week";
+        }
+
+        if(item.repeatType === "weekly"){
+          const targetDay = item.repeatValue;
+          if(tab === "today"){
+            return dayLabel(new Date()) === targetDay;
+          }
+          if(tab === "tomorrow"){
+            return dayLabel(tomorrowDate) === targetDay;
+          }
+          if(tab === "week"){
+            return true;
+          }
+        }
+
+        if(tab === "today"){
+          return item.date === today;
+        }
+        if(tab === "tomorrow"){
+          return item.date === tomorrow;
+        }
+        if(tab === "week"){
+          const d = new Date(item.date);
+          const start = new Date();
+          start.setHours(0,0,0,0);
+          const end = new Date();
+          end.setDate(end.getDate() + 7);
+          end.setHours(23,59,59,999);
+          return d >= start && d <= end;
+        }
+
+        return false;
+      }).sort((a,b) => (a.time || "").localeCompare(b.time || ""));
+    }
+
+    function renderScheduleList(tab){
+      currentScheduleTab = tab;
+      const area = document.getElementById("scheduleListArea");
+      area.innerHTML = "";
+      const list = getSchedulesForTab(tab);
+
+      if(list.length === 0){
+        area.innerHTML = `<div class="notice warn">この範囲の予定はありません。</div>`;
+        return;
+      }
+
+      list.forEach(item => area.appendChild(createScheduleCard(item, true)));
+    }
+
+    function changeScheduleTab(btn, tab){
+      document.querySelectorAll(".tab-btn").forEach(x => x.classList.remove("active"));
+      btn.classList.add("active");
+      renderScheduleList(tab);
+    }
+
+    function speakTodaySchedules(){
+      const list = getSchedulesForTab("today");
+      let text = "";
+      if(list.length === 0){
+        text = "今日は予定はありません。";
+      }else{
+        text = `今日は${list.length}件の予定があります。`;
+        list.forEach(item => {
+          text += ` ${item.time || ""}に${item.title}。`;
+        });
+      }
+      speak(text);
+    }
+
+    function speakListCurrentTab(){
+      const list = getSchedulesForTab(currentScheduleTab);
+      if(list.length === 0){
+        speak("予定はありません。");
+        return;
+      }
+      const label = {
+        today:"今日",
+        tomorrow:"明日",
+        week:"今週",
+        repeat:"くり返し"
+      }[currentScheduleTab] || "予定";
+      let text = `${label}の予定です。`;
+      list.forEach(item => {
+        if(currentScheduleTab === "repeat"){
+          text += ` ${formatScheduleDate(item)}、${item.title}。`;
+        } else {
+          text += ` ${item.time || ""}に${item.title}。`;
+        }
+      });
+      speak(text);
+    }
+
+    function speak(text){
+      lastAISpeech = text;
+      if(!("speechSynthesis" in window)){
+        alert(text);
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const utt = new SpeechSynthesisUtterance(text);
+      utt.lang = "ja-JP";
+      utt.rate = Number(getSettings().voiceRate || "0.8");
+      window.speechSynthesis.speak(utt);
+    }
+
+    function speakLastAI(){
+      if(lastAISpeech){
+        speak(lastAISpeech);
+      }
+    }
+
+    function initSpeechRecognition(){
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if(!SR){
+        document.getElementById("micStatus").textContent = "このブラウザでは音声認識が使えません";
+        return;
+      }
+      recognition = new SR();
+      recognition.lang = "ja-JP";
+      recognition.interimResults = false;
+      recognition.continuous = false;
+
+      recognition.onstart = () => {
+        isListening = true;
+        const btn = document.getElementById("micBtn");
+        btn.classList.add("listening");
+        document.getElementById("micStatus").textContent = "聞き取り中です";
+      };
+
+      recognition.onresult = (event) => {
+        const text = event.results[0][0].transcript || "";
+        document.getElementById("manualInput").value = text;
+        document.getElementById("micStatus").textContent = "聞き取りました";
+      };
+
+      recognition.onerror = () => {
+        isListening = false;
+        document.getElementById("micBtn").classList.remove("listening");
+        document.getElementById("micStatus").textContent = "聞き取りできませんでした";
+      };
+
+      recognition.onend = () => {
+        isListening = false;
+        document.getElementById("micBtn").classList.remove("listening");
+      };
+    }
+
+    function toggleRecognition(){
+      if(!recognition){
+        alert("このブラウザでは音声認識が使えません。下の入力欄をご利用ください。");
+        return;
+      }
+      if(isListening){
+        recognition.stop();
+      }else{
+        recognition.start();
+      }
+    }
+
+    function clearTalkInput(){
+      document.getElementById("manualInput").value = "";
+      document.getElementById("talkResultCard").style.display = "none";
+      pendingSchedule = null;
+    }
+
+    function processInput(){
+      const text = document.getElementById("manualInput").value.trim();
+      if(!text){
+        alert("内容を入れてください。");
+        return;
+      }
+
+      const result = analyzeIntent(text);
+      showTalkResult(result, text);
+    }
+
+    function showTalkResult(result, originalText){
+      const card = document.getElementById("talkResultCard");
+      const body = document.getElementById("talkResultBody");
+      card.style.display = "block";
+      pendingSchedule = null;
+
+      if(result.intent === "schedule_create"){
+        pendingSchedule = result.schedule;
+        body.innerHTML = `
+          <div class="notice ok">${escapeHtml(result.reply)}</div>
+          <div class="small muted" style="margin-top:10px;">聞き取り内容：${escapeHtml(originalText)}</div>
+          <div class="top-actions">
+            <button class="sub-btn" onclick="confirmScheduleSave()">はい</button>
+            <button class="sub-btn" onclick="rejectScheduleSave()">いいえ</button>
+            <button class="sub-btn" onclick="clearTalkInput()">もう一度話す</button>
+          </div>
+        `;
+        speak(result.reply);
+        return;
+      }
+
+      if(result.intent === "schedule_check"){
+        body.innerHTML = `<div class="notice ok">${escapeHtml(result.reply)}</div>`;
+        speak(result.reply);
+        return;
+      }
+
+      if(result.intent === "chat"){
+        body.innerHTML = `
+          <div class="notice ok">${escapeHtml(result.reply)}</div>
+          <div class="top-actions">
+            <button class="sub-btn" onclick="moveTalkToChat(${JSON.stringify(originalText).replace(/"/g,'&quot;')}, ${JSON.stringify(result.reply).replace(/"/g,'&quot;')})">おしゃべりを続ける</button>
+          </div>
+        `;
+        speak(result.reply);
+        return;
+      }
+
+      if(result.intent === "health_concern" || result.intent === "emergency_like" || result.intent === "money_or_contract"){
+        body.innerHTML = `<div class="notice danger">${escapeHtml(result.reply)}</div>`;
+        speak(result.reply);
+        return;
+      }
+
+      body.innerHTML = `<div class="notice warn">${escapeHtml(result.reply)}</div>`;
+      speak(result.reply);
+    }
+
+    function moveTalkToChat(userText, aiReply){
+      const logs = getChatLogs();
+      logs.push({role:"user", text:userText});
+      logs.push({role:"ai", text:aiReply});
+      setChatLogs(logs);
+      openChatScreen();
+    }
+
+    function confirmScheduleSave(){
+      if(!pendingSchedule){
+        return;
+      }
+      const list = getSchedules();
+      list.push(pendingSchedule);
+      setSchedules(list);
+      renderTodayHome();
+      document.getElementById("talkResultBody").innerHTML = `
+        <div class="notice ok">登録しました。${escapeHtml(pendingSchedule.title)}を記録しました。</div>
+        <div class="top-actions">
+          <button class="sub-btn" onclick="goHome()">ホームへ戻る</button>
+          <button class="sub-btn" onclick="goScreen('scheduleScreen'); renderScheduleList('today');">予定を見る</button>
+        </div>
+      `;
+      speak(`登録しました。${pendingSchedule.title}を記録しました。`);
+      pendingSchedule = null;
+    }
+
+    function rejectScheduleSave(){
+      pendingSchedule = null;
+      document.getElementById("talkResultBody").innerHTML = `
+        <div class="notice warn">登録を取りやめました。もう一度話してください。</div>
+      `;
+      speak("登録を取りやめました。もう一度話してください。");
+    }
+
+    function openChatWithGreeting(){
+      const logs = getChatLogs();
+      if(logs.length === 0){
+        const greeting = getGreetingText();
+        logs.push({role:"ai", text:greeting});
+        setChatLogs(logs);
+      }
+      openChatScreen();
+      speakLastChatAi();
+    }
+
+    function openChatScreen(){
+      renderChat();
+      goScreen("chatScreen");
+    }
+
+    function renderChat(){
+      const chatLog = document.getElementById("chatLog");
+      const logs = getChatLogs();
+      chatLog.innerHTML = "";
+      logs.slice(-20).forEach(item => {
+        const div = document.createElement("div");
+        div.className = `bubble ${item.role === "ai" ? "ai" : "user"}`;
+        div.textContent = item.text;
+        chatLog.appendChild(div);
+      });
+    }
+
+    function sendChat(){
+      const input = document.getElementById("chatInput");
+      const text = input.value.trim();
+      if(!text){
+        alert("お話ししたい内容を入れてください。");
+        return;
+      }
+
+      const logs = getChatLogs();
+      logs.push({role:"user", text});
+      const reply = chatReply(text);
+      logs.push({role:"ai", text:reply});
+      setChatLogs(logs);
+      input.value = "";
+      renderChat();
+      speak(reply);
+    }
+
+    function speakLastChatAi(){
+      const logs = getChatLogs().filter(x => x.role === "ai");
+      if(logs.length){
+        speak(logs[logs.length - 1].text);
+      }
+    }
+
+    function getGreetingText(){
+      const s = getSettings();
+      const name = s.callName || s.userName || "";
+      const prefix = name ? `${name}、` : "";
+      const hour = new Date().getHours();
+      if(hour < 11) return `${prefix}おはようございます。少しお話ししましょうか。`;
+      if(hour < 18) return `${prefix}こんにちは。今日はどんな一日ですか。`;
+      return `${prefix}こんばんは。今日はどうでしたか。`;
+    }
+
+    function chatReply(text){
+      if(matchAny(text, ["さびしい", "寂しい", "ひとり", "孤独"])){
+        return "そうでしたか。少しゆっくりお話ししましょうか。今日はどんなことがありましたか。";
+      }
+      if(matchAny(text, ["寒い", "暑い", "天気"])){
+        return "季節の変わり目は体にこたえますね。今日は無理をしないで過ごしてくださいね。";
+      }
+      if(matchAny(text, ["眠れ", "ねむれ", "眠い"])){
+        return "眠りが気になる日はつらいですね。今日は少しでもゆっくり休めるといいですね。";
+      }
+      if(matchAny(text, ["病院", "薬", "予定"])){
+        return "予定のことでしたら、ホーム画面から今日の予定も確認できます。必要なら一緒に見ていきましょうか。";
+      }
+      return "ありがとうございます。もう少し聞かせてください。今日はどんなことを考えていましたか。";
+    }
+
+    function analyzeIntent(text){
+      const t = normalize(text);
+
+      if(matchAny(t, ["胸が苦しい", "息ができない", "倒れそう", "救急", "苦しくて動けない"])){
+        return {
+          intent:"emergency_like",
+          reply:"緊急の可能性があります。近くの方やご家族に連絡し、必要なら119番に連絡してください。"
+        };
+      }
+
+      if(matchAny(t, ["保険", "契約", "振り込", "お金", "投資", "払うべき"])){
+        return {
+          intent:"money_or_contract",
+          reply:"私はお金や契約の判断はできません。ご家族や専門の方に相談してください。"
+        };
+      }
+
+      if(matchAny(t, ["頭が痛い", "だるい", "咳", "熱", "気分が悪い", "具合が悪い"])){
+        return {
+          intent:"health_concern",
+          reply:"私は医療判断はできません。心配でしたら病院やご家族に連絡してください。"
+        };
+      }
+
+      if(matchAny(t, ["今日の予定", "明日の予定", "何かある", "病院は何時", "予定は"])){
+        const reply = answerScheduleCheck(t);
+        return {
+          intent:"schedule_check",
+          reply
+        };
+      }
+
+      if(looksLikeScheduleCreate(t)){
+        const schedule = parseSchedule(t);
+        return {
+          intent:"schedule_create",
+          schedule,
+          reply: createScheduleConfirmationText(schedule)
+        };
+      }
+
+      if(matchAny(t, ["話したい", "さびしい", "寂しい", "寒いね", "こんにちは", "こんばんは", "おはよう", "少し話", "おしゃべり"])){
+        return {
+          intent:"chat",
+          reply: chatReply(t)
+        };
+      }
+
+      return {
+        intent:"unknown",
+        reply:"うまく分かりませんでした。たとえば「明日10時に病院」や「少し話したい」のように話してください。"
+      };
+    }
+
+    function looksLikeScheduleCreate(text){
+      const keywords = ["明日", "あした", "今日", "きょう", "毎日", "毎朝", "毎週", "木曜", "月曜", "火曜", "水曜", "金曜", "土曜", "日曜", "病院", "薬", "ゴミ", "歯医者", "買い物", "デイサービス"];
+      const hasKeyword = keywords.some(k => text.includes(k));
+      const hasTime = /([0-2]?\d)時/.test(text) || /([0-2]?\d):([0-5]\d)/.test(text);
+      return hasKeyword || hasTime;
+    }
+
+    function parseSchedule(text){
+      const now = new Date();
+      let title = "予定";
+      let category = "free";
+      let date = ymd(now);
+      let time = "09:00";
+      let repeatType = "none";
+      let repeatValue = null;
+
+      if(matchAny(text, ["病院", "通院", "内科", "歯医者", "医院"])){
+        title = text.includes("歯医者") ? "歯医者" : "病院";
+        category = "hospital";
+      } else if(matchAny(text, ["薬", "くすり"])){
+        title = "薬";
+        category = "medicine";
+      } else if(matchAny(text, ["ゴミ", "ごみ"])){
+        title = "ゴミ出し";
+        category = "garbage";
+      } else if(matchAny(text, ["買い物"])){
+        title = "買い物";
+        category = "shopping";
+      } else if(matchAny(text, ["デイサービス"])){
+        title = "デイサービス";
+        category = "day_service";
+      } else if(matchAny(text, ["電話", "家族"])){
+        title = "家族連絡";
+        category = "family_call";
+      }
+
+      const hm = text.match(/([0-2]?\d):([0-5]\d)/);
+      const ji = text.match(/([0-2]?\d)時/);
+      if(hm){
+        time = `${String(hm[1]).padStart(2,"0")}:${hm[2]}`;
+      } else if(ji){
+        time = `${String(ji[1]).padStart(2,"0")}:00`;
+      } else if(text.includes("毎朝")){
+        time = "08:00";
+      }
+
+      if(matchAny(text, ["明日", "あした"])){
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        date = ymd(d);
+      } else if(matchAny(text, ["今日", "きょう"])){
+        date = ymd(now);
+      }
+
+      if(text.includes("毎日") || text.includes("毎朝")){
+        repeatType = "daily";
+        repeatValue = null;
+      } else if(text.includes("毎週")){
+        repeatType = "weekly";
+        repeatValue = extractWeekday(text) || dayLabel(now);
+      } else {
+        const wd = extractWeekday(text);
+        if(wd){
+          repeatType = "weekly";
+          repeatValue = wd;
+        }
+      }
+
+      return {
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        title,
+        category,
+        date,
+        time,
+        repeatType,
+        repeatValue,
+        sourceText: text
+      };
+    }
+
+    function createScheduleConfirmationText(s){
+      if(s.repeatType === "daily"){
+        return `毎日${s.time}の${s.title}として登録します。よろしいですか。`;
+      }
+      if(s.repeatType === "weekly"){
+        return `毎週${s.repeatValue}${s.time ? " " + s.time : ""}の${s.title}として登録します。よろしいですか。`;
+      }
+      return `${s.date} ${s.time}の${s.title}として登録します。よろしいですか。`;
+    }
+
+    function answerScheduleCheck(text){
+      if(matchAny(text, ["明日"])){
+        const list = getSchedulesForTab("tomorrow");
+        if(list.length === 0) return "明日の予定はありません。";
+        let reply = `明日は${list.length}件の予定があります。`;
+        list.forEach(item => reply += ` ${item.time}に${item.title}。`);
+        return reply;
+      }
+
+      const todayList = getSchedulesForTab("today");
+      if(text.includes("病院") && text.includes("何時")){
+        const item = todayList.find(x => x.title.includes("病院") || x.category === "hospital");
+        return item ? `今日の病院は${item.time}です。` : "今日、病院の予定はありません。";
+      }
+
+      if(todayList.length === 0) return "今日は予定はありません。";
+      let reply = `今日は${todayList.length}件の予定があります。`;
+      todayList.forEach(item => reply += ` ${item.time}に${item.title}。`);
+      return reply;
+    }
+
+    function normalize(str){
+      return (str || "").replace(/\s+/g, "").trim();
+    }
+
+    function matchAny(text, arr){
+      return arr.some(k => text.includes(k));
+    }
+
+    function ymd(d){
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,"0");
+      const da = String(d.getDate()).padStart(2,"0");
+      return `${y}-${m}-${da}`;
+    }
+
+    function dayLabel(d){
+      return ["日曜","月曜","火曜","水曜","木曜","金曜","土曜"][d.getDay()];
+    }
+
+    function extractWeekday(text){
+      const days = ["日曜","月曜","火曜","水曜","木曜","金曜","土曜"];
+      const aliases = {
+        "日曜":"日曜","日曜日":"日曜",
+        "月曜":"月曜","月曜日":"月曜",
+        "火曜":"火曜","火曜日":"火曜",
+        "水曜":"水曜","水曜日":"水曜",
+        "木曜":"木曜","木曜日":"木曜",
+        "金曜":"金曜","金曜日":"金曜",
+        "土曜":"土曜","土曜日":"土曜"
+      };
+      for(const key in aliases){
+        if(text.includes(key)) return aliases[key];
+      }
+      return null;
+    }
+
+    function escapeHtml(str){
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function seedDemoDataIfEmpty(){
+      const existing = getSchedules();
+      if(existing.length > 0) return;
+
+      const today = ymd(new Date());
+      const tomorrowDate = new Date();
+      tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+
+      const demo = [
+        {
+          id:"demo-1",
+          title:"薬",
+          category:"medicine",
+          date:today,
+          time:"08:00",
+          repeatType:"daily",
+          repeatValue:null,
+          sourceText:"毎朝8時に薬"
+        },
+        {
+          id:"demo-2",
+          title:"病院",
+          category:"hospital",
+          date:today,
+          time:"10:00",
+          repeatType:"none",
+          repeatValue:null,
+          sourceText:"今日10時に病院"
+        },
+        {
+          id:"demo-3",
+          title:"ゴミ出し",
+          category:"garbage",
+          date:ymd(tomorrowDate),
+          time:"08:00",
+          repeatType:"weekly",
+          repeatValue:dayLabel(tomorrowDate),
+          sourceText:"毎週木曜はゴミ"
+        }
+      ];
+      setSchedules(demo);
+    }
+
+    window.addEventListener("load", initApp);
+  </script>
+</body>
+</html>
