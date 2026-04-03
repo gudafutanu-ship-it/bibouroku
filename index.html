@@ -66,9 +66,9 @@
     }
 
     .sync-pill{
-      background:#eef7ee;
-      color:#246b37;
-      border:1px solid #cde8d4;
+      background:#fff8e8;
+      color:#8a6415;
+      border:1px solid #eedcae;
       padding:8px 12px;
       border-radius:999px;
       font-size:0.9rem;
@@ -393,7 +393,7 @@
           <h1>美貌録</h1>
           <p class="subtitle">話して残す、やさしい生活手帳</p>
         </div>
-        <div class="sync-pill" id="syncStatus">会話AI: 未接続</div>
+        <div class="sync-pill" id="syncStatus">会話AI: 未設定</div>
       </div>
     </div>
   </header>
@@ -521,7 +521,7 @@
 
         <div class="block">
           <label class="label" for="workerUrlInput">会話AIのWorker URL</label>
-          <input id="workerUrlInput" type="text" placeholder="まだ無ければ空欄でOK" />
+          <input id="workerUrlInput" type="text" placeholder="ここにWorker URLを入れます" />
         </div>
 
         <div class="row">
@@ -536,9 +536,9 @@
   </main>
 
   <script>
-    const STORAGE_KEY_SCHEDULES = "bibouroku_schedules_v3";
-    const STORAGE_KEY_SETTINGS = "bibouroku_settings_v3";
-    const STORAGE_KEY_CHAT = "bibouroku_chat_v3";
+    const STORAGE_KEY_SCHEDULES = "bibouroku_schedules_v4";
+    const STORAGE_KEY_SETTINGS = "bibouroku_settings_v4";
+    const STORAGE_KEY_CHAT = "bibouroku_chat_v4";
 
     let recognition = null;
     let isListening = false;
@@ -546,8 +546,7 @@
     let currentScheduleTab = "today";
     let lastAISpeech = "";
 
-    // 最初は空でOK
-    const WORKER_URL = "bibouroku.gudafutanu.workers.dev";
+    const WORKER_URL = "";
 
     const categoryLabels = {
       hospital: "通院",
@@ -662,7 +661,7 @@
       if(url){
         el.textContent = "会話AI: 接続先あり";
       } else {
-        el.textContent = "会話AI: 簡易会話モード";
+        el.textContent = "会話AI: 未設定";
       }
     }
 
@@ -1105,26 +1104,29 @@
       try{
         const workerUrl = getEffectiveWorkerUrl();
 
-        let reply = "";
-        if(workerUrl){
-          reply = await askAI(workerUrl, text);
-        } else {
-          reply = chatReplyFallback(text);
+        if(!workerUrl){
+          const logs2 = getChatLogs();
+          logs2.push({role:"ai", text:"会話AIが未設定です。設定画面でWorker URLを入れてください。"});
+          setChatLogs(logs2);
+          renderChat();
+          speak("会話エーアイが未設定です。設定画面でワーカーURLを入れてください。");
+          return;
         }
 
+        const reply = await askAI(workerUrl, text);
+
         const logs2 = getChatLogs();
-        logs2.push({role:"ai", text:reply});
+        logs2.push({role:"ai", text: reply});
         setChatLogs(logs2);
         renderChat();
         speak(reply);
 
       } catch(e){
-        const reply = chatReplyFallback(text);
         const logs2 = getChatLogs();
-        logs2.push({role:"ai", text:reply});
+        logs2.push({role:"ai", text:"会話AIに接続できませんでした。"});
         setChatLogs(logs2);
         renderChat();
-        speak(reply);
+        speak("会話エーアイに接続できませんでした。");
       } finally {
         loading.style.display = "none";
       }
@@ -1164,22 +1166,6 @@
       if(hour < 11) return `${prefix}おはようございます。少しお話ししましょうか。`;
       if(hour < 18) return `${prefix}こんにちは。今日はどんな一日ですか。`;
       return `${prefix}こんばんは。今日はどうでしたか。`;
-    }
-
-    function chatReplyFallback(text){
-      if(matchAny(text, ["さびしい", "寂しい", "ひとり", "孤独"])){
-        return "そうでしたか。少しゆっくりお話ししましょうか。今日はどんなことがありましたか。";
-      }
-      if(matchAny(text, ["寒い", "暑い", "天気"])){
-        return "季節の変わり目は体にこたえますね。今日は無理をしないで過ごしてくださいね。";
-      }
-      if(matchAny(text, ["眠れ", "ねむれ", "眠い"])){
-        return "眠りが気になる日はつらいですね。今日は少しでもゆっくり休めるといいですね。";
-      }
-      if(matchAny(text, ["病院", "薬", "予定"])){
-        return "予定のことでしたら、ホーム画面から今日の予定も確認できます。必要なら一緒に見ていきましょうか。";
-      }
-      return "ありがとうございます。もう少し聞かせてください。今日はどんなことを考えていましたか。";
     }
 
     function analyzeIntent(text){
@@ -1226,7 +1212,7 @@
       if(matchAny(t, ["話したい", "さびしい", "寂しい", "寒いね", "こんにちは", "こんばんは", "おはよう", "少し話", "おしゃべり"])){
         return {
           intent:"chat",
-          reply: chatReplyFallback(t)
+          reply:"おしゃべり画面に入ったら、会話AIに送れます。"
         };
       }
 
