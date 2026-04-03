@@ -377,6 +377,18 @@
       font-weight:700;
     }
 
+    .visually-hidden{
+      position:absolute !important;
+      width:1px;
+      height:1px;
+      padding:0;
+      margin:-1px;
+      overflow:hidden;
+      clip:rect(0,0,0,0);
+      white-space:nowrap;
+      border:0;
+    }
+
     @media (max-width:560px){
       .brand-left h1{ font-size:1.55rem; }
       .time-big{ font-size:1.75rem; }
@@ -429,7 +441,7 @@
         <div class="mic-wrap">
           <button id="micBtn" class="mic-btn" onclick="toggleRecognition()">🎤</button>
           <div class="status" id="micStatus">待機中</div>
-          <div class="muted">マイクが使えない場合は下に入力してください</div>
+          <div class="muted">話し終わると、自動で確認します</div>
         </div>
       </div>
 
@@ -440,7 +452,7 @@
         </div>
 
         <div class="row">
-          <button class="sub-btn" onclick="processInput()">これで送る</button>
+          <button id="talkSendBtn" class="sub-btn visually-hidden" onclick="processInput()">これで送る</button>
           <button class="sub-btn" onclick="clearTalkInput()">消す</button>
           <button class="sub-btn" onclick="goHome()">戻る</button>
         </div>
@@ -480,11 +492,17 @@
 
         <div class="block" style="margin-top:12px;">
           <label class="label" for="chatInput">話したいこと</label>
-          <textarea id="chatInput" rows="3" placeholder="今日は少しさびしい / 今日は寒いね / 少し話したい"></textarea>
+          <textarea id="chatInput" rows="3" placeholder="マイクのボタンを押して話してください"></textarea>
         </div>
 
-        <div class="row">
-          <button class="sub-btn" onclick="sendChat()">送る</button>
+        <div class="mic-wrap">
+          <button id="chatMicBtn" class="mic-btn" onclick="toggleChatRecognition()">🎤</button>
+          <div class="status" id="chatMicStatus">待機中</div>
+          <div class="muted">話し終わると、自動で送信します</div>
+        </div>
+
+        <div class="row" style="margin-top:14px;">
+          <button id="chatSendBtn" class="sub-btn visually-hidden" onclick="sendChat()">送る</button>
           <button class="sub-btn" onclick="speakLastAI()">もう一度聞く</button>
           <button class="sub-btn" onclick="goHome()">終わる</button>
         </div>
@@ -536,15 +554,28 @@
   </main>
 
   <script>
-    const STORAGE_KEY_SCHEDULES = "bibouroku_schedules_v4";
-    const STORAGE_KEY_SETTINGS = "bibouroku_settings_v4";
-    const STORAGE_KEY_CHAT = "bibouroku_chat_v4";
+    const STORAGE_KEY_SCHEDULES = "bibouroku_schedules_v5";
+    const STORAGE_KEY_SETTINGS = "bibouroku_settings_v5";
+    const STORAGE_KEY_CHAT = "bibouroku_chat_v5";
 
     let recognition = null;
     let isListening = false;
+    let chatRecognition = null;
+    let isChatListening = false;
     let pendingSchedule = null;
     let currentScheduleTab = "today";
     let lastAISpeech = "";
+    let confirmRecognition = null;
+    let isConfirmListening = false;
+    let waitingVoiceConfirmation = false;
+    let isTalkProcessing = false;
+    let talkAutoSendTimer = null;
+    let lastAutoProcessedText = "";
+    let lastAutoProcessedAt = 0;
+    let isChatSending = false;
+    let chatAutoSendTimer = null;
+    let lastAutoSentText = "";
+    let lastAutoSentAt = 0;
 
     const WORKER_URL = "";
 
@@ -564,6 +595,8 @@
       setInterval(updateClock, 1000);
       renderTodayHome();
       initSpeechRecognition();
+      initChatSpeechRecognition();
+      initConfirmSpeechRecognition();
       loadSettingsIfMissing();
       updateAIStatus();
     }
@@ -571,9 +604,22 @@
     function goScreen(id){
       document.querySelectorAll(".screen").forEach(el => el.classList.remove("active"));
       document.getElementById(id).classList.add("active");
+
+      if(id === "talkScreen"){
+        const status = document.getElementById("micStatus");
+        if(status && !isListening) status.textContent = "待機中";
+      }
+      if(id === "chatScreen"){
+        const status = document.getElementById("chatMicStatus");
+        if(status && !isChatListening && !isChatSending) status.textContent = "待機中";
+      }
     }
 
     function goHome(){
+      waitingVoiceConfirmation = false;
+      if(confirmRecognition && isConfirmListening){
+        try{ confirmRecognition.stop(); }catch(e){}
+      }
       renderTodayHome();
       goScreen("homeScreen");
     }
@@ -887,12 +933,14 @@
         .replaceAll("日曜", "にちよう");
     }
 
-    function speak(text){
+    function speak(text, options = {}){
+      const { afterSpeak = null } = options;
       const safeText = normalizeForSpeech(text);
       lastAISpeech = safeText;
 
       if(!("speechSynthesis" in window)){
         alert(safeText);
+        if(typeof afterSpeak === "function") afterSpeak();
         return;
       }
 
@@ -900,6 +948,9 @@
       const utt = new SpeechSynthesisUtterance(safeText);
       utt.lang = "ja-JP";
       utt.rate = Number(getSettings().voiceRate || "0.75");
+      if(typeof afterSpeak === "function"){
+        utt.onend = () => afterSpeak();
+      }
       window.speechSynthesis.speak(utt);
     }
 
@@ -920,18 +971,31 @@
       recognition.continuous = false;
 
       recognition.onstart = () => {
+        clearPendingTalkAutoSend();
         isListening = true;
         document.getElementById("micBtn").classList.add("listening");
         document.getElementById("micStatus").textContent = "聞き取り中です";
       };
 
       recognition.onresult = (event) => {
-        const text = event.results[0][0].transcript || "";
-        document.getElementById("manualInput").value = text;
-        document.getElementById("micStatus").textContent = "聞き取りました";
+        const text = (event.results?.[0]?.[0]?.transcript || "").trim();
+        const input = document.getElementById("manualInput");
+        const status = document.getElementById("micStatus");
+        if(input) input.value = text;
+
+        if(status){
+          status.textContent = text
+            ? "聞き取りました。自動で確認します…"
+            : "聞き取りできませんでした";
+        }
+
+        if(text){
+          scheduleTalkAutoSend(text);
+        }
       };
 
       recognition.onerror = () => {
+        clearPendingTalkAutoSend();
         isListening = false;
         document.getElementById("micBtn").classList.remove("listening");
         document.getElementById("micStatus").textContent = "聞き取りできませんでした";
@@ -955,40 +1019,307 @@
       }
     }
 
+    function initChatSpeechRecognition(){
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if(!SR){
+        const status = document.getElementById("chatMicStatus");
+        if(status) status.textContent = "このブラウザでは音声認識が使えません";
+        return;
+      }
+
+      chatRecognition = new SR();
+      chatRecognition.lang = "ja-JP";
+      chatRecognition.interimResults = false;
+      chatRecognition.continuous = false;
+
+      chatRecognition.onstart = () => {
+        clearPendingChatAutoSend();
+        isChatListening = true;
+        const btn = document.getElementById("chatMicBtn");
+        const status = document.getElementById("chatMicStatus");
+        if(btn) btn.classList.add("listening");
+        if(status) status.textContent = "聞き取り中です";
+      };
+
+      chatRecognition.onresult = (event) => {
+        const text = (event.results?.[0]?.[0]?.transcript || "").trim();
+        const input = document.getElementById("chatInput");
+        const status = document.getElementById("chatMicStatus");
+        if(input) input.value = text;
+
+        if(status){
+          status.textContent = text
+            ? "聞き取りました。自動で送ります…"
+            : "聞き取りできませんでした";
+        }
+
+        if(text){
+          scheduleChatAutoSend(text);
+        }
+      };
+
+      chatRecognition.onerror = () => {
+        clearPendingChatAutoSend();
+        isChatListening = false;
+        const btn = document.getElementById("chatMicBtn");
+        const status = document.getElementById("chatMicStatus");
+        if(btn) btn.classList.remove("listening");
+        if(status) status.textContent = "聞き取りできませんでした";
+      };
+
+      chatRecognition.onend = () => {
+        isChatListening = false;
+        const btn = document.getElementById("chatMicBtn");
+        if(btn) btn.classList.remove("listening");
+      };
+    }
+
+    function toggleChatRecognition(){
+      if(!chatRecognition){
+        alert("このブラウザでは音声認識が使えません。");
+        return;
+      }
+
+      if(isChatListening){
+        chatRecognition.stop();
+      } else {
+        chatRecognition.start();
+      }
+    }
+
+    function clearPendingChatAutoSend(){
+      if(chatAutoSendTimer){
+        clearTimeout(chatAutoSendTimer);
+        chatAutoSendTimer = null;
+      }
+    }
+
+    function shouldAutoSendChatText(text){
+      const t = String(text || "").trim();
+      if(!t) return false;
+      if(t.length < 2) return false;
+
+      const ngWords = ["えー", "えっと", "あー", "あの", "うーん", "もしもし"];
+      if(ngWords.includes(t)) return false;
+
+      const now = Date.now();
+      if(t === lastAutoSentText && (now - lastAutoSentAt) < 4000){
+        return false;
+      }
+      return true;
+    }
+
+    function scheduleChatAutoSend(text){
+      clearPendingChatAutoSend();
+
+      const status = document.getElementById("chatMicStatus");
+      if(!shouldAutoSendChatText(text)){
+        if(status) status.textContent = "内容を確認してください";
+        return;
+      }
+
+      chatAutoSendTimer = setTimeout(() => {
+        sendChat({ auto: true });
+      }, 800);
+    }
+
+    function initConfirmSpeechRecognition(){
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if(!SR) return;
+
+      confirmRecognition = new SR();
+      confirmRecognition.lang = "ja-JP";
+      confirmRecognition.interimResults = false;
+      confirmRecognition.continuous = false;
+
+      confirmRecognition.onstart = () => {
+        isConfirmListening = true;
+        const btn = document.getElementById("confirmMicBtn");
+        const status = document.getElementById("confirmVoiceStatus");
+        if(btn) btn.classList.add("listening");
+        if(status) status.textContent = "はい・いいえを聞いています";
+      };
+
+      confirmRecognition.onresult = (event) => {
+        const text = (event.results?.[0]?.[0]?.transcript || "").trim();
+        handleVoiceConfirmation(text);
+      };
+
+      confirmRecognition.onerror = () => {
+        isConfirmListening = false;
+        const btn = document.getElementById("confirmMicBtn");
+        const status = document.getElementById("confirmVoiceStatus");
+        if(btn) btn.classList.remove("listening");
+        if(status) status.textContent = "聞き取れませんでした。もう一度おしてください";
+      };
+
+      confirmRecognition.onend = () => {
+        isConfirmListening = false;
+        const btn = document.getElementById("confirmMicBtn");
+        if(btn) btn.classList.remove("listening");
+      };
+    }
+
+    function startConfirmListening(){
+      if(!waitingVoiceConfirmation || !pendingSchedule) return;
+      if(!confirmRecognition) return;
+
+      const status = document.getElementById("confirmVoiceStatus");
+      if(status) status.textContent = "はい・いいえを聞きます";
+      try{
+        confirmRecognition.start();
+      }catch(e){
+        // already started
+      }
+    }
+
+    function toggleConfirmRecognition(){
+      if(!confirmRecognition){
+        alert("このブラウザでは音声認識が使えません。下のボタンを押してください。");
+        return;
+      }
+      if(isConfirmListening){
+        confirmRecognition.stop();
+      } else {
+        startConfirmListening();
+      }
+    }
+
+    function handleVoiceConfirmation(text){
+      const t = normalize(text);
+      const status = document.getElementById("confirmVoiceStatus");
+
+      if(matchAny(t, ["はい","お願い","登録","おねがい","うん","いいよ","お願いします"])){
+        if(status) status.textContent = "はい、と受け取りました";
+        confirmScheduleSave();
+        return;
+      }
+
+      if(matchAny(t, ["いいえ","だめ","やめる","やめて","しない","違う","ちがう","キャンセル"])){
+        if(status) status.textContent = "いいえ、と受け取りました";
+        rejectScheduleSave();
+        return;
+      }
+
+      if(status) status.textContent = "はい か いいえ でお願いします";
+      speak("はい、または、いいえでお答えください。", { afterSpeak: startConfirmListening });
+    }
+
+    function clearPendingTalkAutoSend(){
+      if(talkAutoSendTimer){
+        clearTimeout(talkAutoSendTimer);
+        talkAutoSendTimer = null;
+      }
+    }
+
+    function shouldAutoProcessTalkText(text){
+      const t = String(text || "").trim();
+      if(!t) return false;
+      if(t.length < 2) return false;
+
+      const ngWords = ["えー", "えっと", "あー", "あの", "うーん", "もしもし"];
+      if(ngWords.includes(t)) return false;
+
+      const now = Date.now();
+      if(t === lastAutoProcessedText && (now - lastAutoProcessedAt) < 4000){
+        return false;
+      }
+      return true;
+    }
+
+    function scheduleTalkAutoSend(text){
+      clearPendingTalkAutoSend();
+
+      const status = document.getElementById("micStatus");
+      if(!shouldAutoProcessTalkText(text)){
+        if(status) status.textContent = "内容を確認してください";
+        return;
+      }
+
+      talkAutoSendTimer = setTimeout(() => {
+        processInput({ auto: true });
+      }, 800);
+    }
+
     function clearTalkInput(){
+      clearPendingTalkAutoSend();
+      waitingVoiceConfirmation = false;
+      if(confirmRecognition && isConfirmListening){
+        try{ confirmRecognition.stop(); }catch(e){}
+      }
       document.getElementById("manualInput").value = "";
       document.getElementById("talkResultCard").style.display = "none";
+      document.getElementById("micStatus").textContent = "待機中";
       pendingSchedule = null;
     }
 
-    function processInput(){
-      const text = document.getElementById("manualInput").value.trim();
+    function processInput(options = {}){
+      const { auto = false } = options;
+      clearPendingTalkAutoSend();
+
+      const input = document.getElementById("manualInput");
+      const status = document.getElementById("micStatus");
+      const text = input.value.trim();
+
       if(!text){
-        alert("内容を入れてください。");
+        if(!auto){
+          alert("内容を入れてください。");
+        } else if(status){
+          status.textContent = "聞き取れなかったため確認しませんでした";
+        }
         return;
       }
-      const result = analyzeIntent(text);
-      showTalkResult(result, text);
+
+      if(isTalkProcessing){
+        if(status) status.textContent = "確認中です";
+        return;
+      }
+
+      isTalkProcessing = true;
+      if(auto){
+        lastAutoProcessedText = text;
+        lastAutoProcessedAt = Date.now();
+      }
+
+      try{
+        const result = analyzeIntent(text);
+        if(status){
+          status.textContent = auto ? "自動で確認しました" : "確認しました";
+        }
+        showTalkResult(result, text);
+      } finally {
+        isTalkProcessing = false;
+      }
     }
 
     function showTalkResult(result, originalText){
+
       const card = document.getElementById("talkResultCard");
       const body = document.getElementById("talkResultBody");
       card.style.display = "block";
       pendingSchedule = null;
+      waitingVoiceConfirmation = false;
 
       if(result.intent === "schedule_create"){
         pendingSchedule = result.schedule;
+        waitingVoiceConfirmation = true;
         body.innerHTML = `
           <div class="notice ok">${escapeHtml(result.reply)}</div>
           <div class="small muted" style="margin-top:10px;">聞き取り内容：${escapeHtml(originalText)}</div>
+          <div class="card" style="box-shadow:none; padding:14px; margin-top:12px; border:1px solid var(--line);">
+            <div class="mic-wrap" style="padding-top:0;">
+              <button id="confirmMicBtn" class="mic-btn" style="width:96px;height:96px;font-size:1.6rem;" onclick="toggleConfirmRecognition()">🎤</button>
+              <div class="status" id="confirmVoiceStatus">確認の声を待っています</div>
+              <div class="muted">「はい」または「いいえ」で答えられます</div>
+            </div>
+          </div>
           <div class="top-actions">
             <button class="sub-btn" onclick="confirmScheduleSave()">はい</button>
             <button class="sub-btn" onclick="rejectScheduleSave()">いいえ</button>
             <button class="sub-btn" onclick="clearTalkInput()">もう一度話す</button>
           </div>
         `;
-        speak(result.reply);
+        speak(result.reply, { afterSpeak: startConfirmListening });
         return;
       }
 
@@ -1033,6 +1364,10 @@
 
     function confirmScheduleSave(){
       if(!pendingSchedule) return;
+      waitingVoiceConfirmation = false;
+      if(confirmRecognition && isConfirmListening){
+        try{ confirmRecognition.stop(); }catch(e){}
+      }
       const list = getSchedules();
       list.push(pendingSchedule);
       setSchedules(list);
@@ -1049,6 +1384,10 @@
     }
 
     function rejectScheduleSave(){
+      waitingVoiceConfirmation = false;
+      if(confirmRecognition && isConfirmListening){
+        try{ confirmRecognition.stop(); }catch(e){}
+      }
       pendingSchedule = null;
       document.getElementById("talkResultBody").innerHTML = `
         <div class="notice warn">登録を取りやめました。もう一度話してください。</div>
@@ -1070,6 +1409,8 @@
     function openChatScreen(){
       renderChat();
       goScreen("chatScreen");
+      const status = document.getElementById("chatMicStatus");
+      if(status) status.textContent = "待機中";
     }
 
     function renderChat(){
@@ -1084,12 +1425,32 @@
       });
     }
 
-    async function sendChat(){
+    async function sendChat(options = {}){
+      const { auto = false } = options;
       const input = document.getElementById("chatInput");
+      const status = document.getElementById("chatMicStatus");
       const text = input.value.trim();
+
+      clearPendingChatAutoSend();
+
       if(!text){
-        alert("お話ししたい内容を入れてください。");
+        if(!auto){
+          alert("お話ししたい内容を入れてください。");
+        } else if(status){
+          status.textContent = "聞き取れなかったため送信しませんでした";
+        }
         return;
+      }
+
+      if(isChatSending){
+        if(status) status.textContent = "返事を待っています";
+        return;
+      }
+
+      isChatSending = true;
+      if(auto){
+        lastAutoSentText = text;
+        lastAutoSentAt = Date.now();
       }
 
       const logs = getChatLogs();
@@ -1100,6 +1461,7 @@
 
       const loading = document.getElementById("chatLoading");
       loading.style.display = "inline-block";
+      if(status) status.textContent = auto ? "自動で送信しました" : "送信しました";
 
       try{
         const workerUrl = getEffectiveWorkerUrl();
@@ -1128,6 +1490,7 @@
         renderChat();
         speak("会話エーアイに接続できませんでした。");
       } finally {
+        isChatSending = false;
         loading.style.display = "none";
       }
     }
@@ -1212,7 +1575,7 @@
       if(matchAny(t, ["話したい", "さびしい", "寂しい", "寒いね", "こんにちは", "こんばんは", "おはよう", "少し話", "おしゃべり"])){
         return {
           intent:"chat",
-          reply:"おしゃべり画面に入ったら、会話AIに送れます。"
+          reply:"おしゃべり画面に入ったら、マイクでも会話できます。"
         };
       }
 
